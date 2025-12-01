@@ -1,84 +1,44 @@
-name: 🤖 Отправка ежедневного опроса
+name: Telegram Daily Poll
 
 on:
   schedule:
-    # Каждый день в 08:00 UTC = 11:00 МСК
     - cron: '0 8 * * *'
-  
-  # Разрешаем запуск вручную
   workflow_dispatch:
 
 jobs:
-  send-poll:
+  send:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📤 Отправка опроса в Telegram
+      - name: Send poll
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           TOPIC_ID: ${{ secrets.TOPIC_ID }}
         run: |
-          echo "🚀 Запускаю бота..."
+          # Получаем дату
+          DATE=$(TZ=Europe/Moscow date '+%d.%m.%Y')
           
-          # Дата для Москвы
-          MOSCOW_DATE=$(TZ=Europe/Moscow date '+%d.%m.%Y')
-          
-          # День недели по-русски
-          WEEKDAY=$(TZ=Europe/Moscow date '+%u')
-          case $WEEKDAY in
-            1) DAY="ПН";;
-            2) DAY="ВТ";;
-            3) DAY="СР";;
-            4) DAY="ЧТ";;
-            5) DAY="ПТ";;
-            6) DAY="СБ";;
-            7) DAY="ВС";;
+          # День недели
+          DAY_NUM=$(TZ=Europe/Moscow date '+%u')
+          case $DAY_NUM in
+            1) DAY="ПН";; 2) DAY="ВТ";; 3) DAY="СР";; 4) DAY="ЧТ";;
+            5) DAY="ПТ";; 6) DAY="СБ";; 7) DAY="ВС";;
           esac
           
-          # Текст сообщения
-          MESSAGE="🎮 <b>ИГРАЕМ СЕГОДНЯ?</b>
-
-📅 $MOSCOW_DATE ($DAY)
+          # Формируем текст
+          TEXT="🎮 <b>ИГРАЕМ СЕГОДНЯ?</b>
+          
+📅 $DATE ($DAY)
 ⏰ 11:00 МСК
-
+          
 <i>Ответьте кнопками ниже ↓</i>"
           
-          # Клавиатура с кнопками (фиксим JSON)
+          # JSON для кнопок
           KEYBOARD='{"inline_keyboard":[[{"text":"✅ ДА","callback_data":"yes"},{"text":"❌ НЕТ","callback_data":"no"}]]}'
           
-          echo "📤 Отправляю в Telegram..."
-          
-          # Пробуем отправить С ТЕМОЙ
-          RESPONSE=$(curl -s -X POST \
+          # Отправляем
+          curl -X POST \
             -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"$CHAT_ID\",
-              \"message_thread_id\": $TOPIC_ID,
-              \"text\": \"$MESSAGE\",
-              \"parse_mode\": \"HTML\",
-              \"reply_markup\": $KEYBOARD
-            }" \
-            "https://api.telegram.org/bot$BOT_TOKEN/sendMessage")
-          
-          echo "Ответ: $RESPONSE"
-          
-          # Проверяем успех
-          if echo "$RESPONSE" | grep -q '"ok":true'; then
-            echo "✅ Успешно отправлено в тему $TOPIC_ID"
-          else
-            echo "⚠️ Пробуем без темы..."
-            
-            # Пробуем БЕЗ ТЕМЫ
-            curl -s -X POST \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"chat_id\": \"$CHAT_ID\",
-                \"text\": \"$MESSAGE\",
-                \"parse_mode\": \"HTML\",
-                \"reply_markup\": $KEYBOARD
-              }" \
-              "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
-            
-            echo "✅ Отправлено без темы"
-          fi
+            -d "{\"chat_id\":\"$CHAT_ID\",\"message_thread_id\":$TOPIC_ID,\"text\":\"$TEXT\",\"parse_mode\":\"HTML\",\"reply_markup\":$KEYBOARD}" \
+            "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
