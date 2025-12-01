@@ -16,21 +16,7 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           TOPIC_ID: ${{ secrets.TOPIC_ID }}
         run: |
-          # Дата для Москвы
-          DATE=$(TZ=Europe/Moscow date +"%d.%m.%Y")
-          
-          # День недели по-русски
-          WEEKDAY=$(TZ=Europe/Moscow date +%u)
-          case $WEEKDAY in
-            1) DAY="ПН";; 2) DAY="ВТ";; 3) DAY="СР";;
-            4) DAY="ЧТ";; 5) DAY="ПТ";; 6) DAY="СБ";;
-            7) DAY="ВС";;
-          esac
-          
           echo "🤖 Отправляю опрос в тему $TOPIC_ID..."
-          
-          # Текст опроса
-          QUESTION="🎮 ИГРАЕМ СЕГОДНЯ? ($DATE, $DAY, 11:00 МСК)"
           
           # Пробуем отправить с темой
           RESPONSE=$(curl -s -X POST \
@@ -39,7 +25,7 @@ jobs:
             -d "{
               \"chat_id\": \"$CHAT_ID\",
               \"message_thread_id\": $TOPIC_ID,
-              \"question\": \"$QUESTION\",
+              \"question\": \"🎮 Играем сегодня?\",
               \"options\": [\"✅ ДА\", \"❌ НЕТ\"],
               \"is_anonymous\": false,
               \"type\": \"regular\",
@@ -60,7 +46,7 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{
                 \"chat_id\": \"$CHAT_ID\",
-                \"question\": \"$QUESTION\",
+                \"question\": \"🎮 Играем сегодня?\",
                 \"options\": [\"✅ ДА\", \"❌ НЕТ\"],
                 \"is_anonymous\": false,
                 \"type\": \"regular\",
