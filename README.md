@@ -12,7 +12,7 @@
 - Автоматическая отправка
 
 ## 📊 Статус
-![GitHub Actions](https://github.com/ВАШ_ЛОГИН/telegram-game-bot/actions/workflows/telegram-bot.yml/badge.svg)
+![GitHub Actions](https://github.com/genapino4et1/telegram-game-bot/actions/workflows/telegram-bot.yml/badge.svg)
 
 ---
 
