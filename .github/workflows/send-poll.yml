@@ -1,4 +1,4 @@
-name: Telegram Daily Poll
+name: Telegram Poll Bot
 
 on:
   schedule:
@@ -6,39 +6,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  send:
+  send-poll:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Send poll
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
-          TOPIC_ID: ${{ secrets.TOPIC_ID }}
-        run: |
-          # Получаем дату
-          DATE=$(TZ=Europe/Moscow date '+%d.%m.%Y')
-          
-          # День недели
-          DAY_NUM=$(TZ=Europe/Moscow date '+%u')
-          case $DAY_NUM in
-            1) DAY="ПН";; 2) DAY="ВТ";; 3) DAY="СР";; 4) DAY="ЧТ";;
-            5) DAY="ПТ";; 6) DAY="СБ";; 7) DAY="ВС";;
-          esac
-          
-          # Формируем текст
-          TEXT="🎮 <b>ИГРАЕМ СЕГОДНЯ?</b>
-          
-📅 $DATE ($DAY)
-⏰ 11:00 МСК
-          
-<i>Ответьте кнопками ниже ↓</i>"
-          
-          # JSON для кнопок
-          KEYBOARD='{"inline_keyboard":[[{"text":"✅ ДА","callback_data":"yes"},{"text":"❌ НЕТ","callback_data":"no"}]]}'
-          
-          # Отправляем
-          curl -X POST \
-            -H "Content-Type: application/json" \
-            -d "{\"chat_id\":\"$CHAT_ID\",\"message_thread_id\":$TOPIC_ID,\"text\":\"$TEXT\",\"parse_mode\":\"HTML\",\"reply_markup\":$KEYBOARD}" \
-            "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
+    - name: Send to Telegram
+      env:
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        TOPIC_ID: ${{ secrets.TOPIC_ID }}
+      run: |
+        DATE=$(date +"%d.%m.%Y")
+        
+        # Создаем текст сообщения
+        TEXT="🎮 ИГРАЕМ СЕГОДНЯ?\n\n📅 $DATE\n⏰ 11:00 МСК\n\n<i>Ответьте кнопками ниже</i>"
+        
+        # Создаем клавиатуру
+        KEYBOARD='{"inline_keyboard":[[{"text":"✅ ДА","callback_data":"yes"},{"text":"❌ НЕТ","callback_data":"no"}]]}'
+        
+        # Отправляем запрос
+        curl -s -X POST \
+          -H "Content-Type: application/json" \
+          -d "{\"chat_id\":\"$CHAT_ID\",\"message_thread_id\":$TOPIC_ID,\"text\":\"$TEXT\",\"parse_mode\":\"HTML\",\"reply_markup\":$KEYBOARD}" \
+          https://api.telegram.org/bot$BOT_TOKEN/sendMessage
