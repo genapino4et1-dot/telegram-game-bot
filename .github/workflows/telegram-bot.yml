@@ -14,6 +14,7 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          TOPIC_ID: ${{ secrets.TOPIC_ID }}
         run: |
           # Дата для Москвы
           DATE=$(TZ=Europe/Moscow date +"%d.%m.%Y")
@@ -26,17 +27,18 @@ jobs:
             7) DAY="ВС";;
           esac
           
-          echo "🤖 Отправляю настоящий опрос..."
+          echo "🤖 Отправляю опрос в тему $TOPIC_ID..."
           
           # Текст опроса
           QUESTION="🎮 ИГРАЕМ СЕГОДНЯ? ($DATE, $DAY, 11:00 МСК)"
           
-          # Отправляем НАСТОЯЩИЙ опрос (poll) в Telegram
+          # Пробуем отправить с темой
           RESPONSE=$(curl -s -X POST \
             "https://api.telegram.org/bot$BOT_TOKEN/sendPoll" \
             -H "Content-Type: application/json" \
             -d "{
               \"chat_id\": \"$CHAT_ID\",
+              \"message_thread_id\": $TOPIC_ID,
               \"question\": \"$QUESTION\",
               \"options\": [\"✅ ДА\", \"❌ НЕТ\"],
               \"is_anonymous\": false,
@@ -47,8 +49,27 @@ jobs:
           echo "📊 Ответ Telegram: $RESPONSE"
           
           if echo "$RESPONSE" | grep -q '"ok":true'; then
-            echo "✅ НАСТОЯЩИЙ опрос успешно отправлен!"
+            echo "✅ Опрос успешно отправлен в тему $TOPIC_ID!"
           else
-            echo "❌ Ошибка при отправке опроса"
-            echo "Подробности: $RESPONSE"
+            echo "⚠️ Проблема с отправкой в тему $TOPIC_ID"
+            echo "Пробуем отправить без темы..."
+            
+            # Отправляем без темы
+            RESPONSE2=$(curl -s -X POST \
+              "https://api.telegram.org/bot$BOT_TOKEN/sendPoll" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"chat_id\": \"$CHAT_ID\",
+                \"question\": \"$QUESTION\",
+                \"options\": [\"✅ ДА\", \"❌ НЕТ\"],
+                \"is_anonymous\": false,
+                \"type\": \"regular\",
+                \"allows_multiple_answers\": false
+              }")
+            
+            if echo "$RESPONSE2" | grep -q '"ok":true'; then
+              echo "✅ Опрос отправлен без темы"
+            else
+              echo "❌ Ошибка при отправке опроса"
+            fi
           fi
