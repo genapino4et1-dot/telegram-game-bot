@@ -2,7 +2,7 @@ name: Telegram Daily Poll
 
 on:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 8 * * *'  # 08:00 UTC = 11:00 МСК
   workflow_dispatch:
 
 jobs:
@@ -10,13 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Send to Telegram
+      - name: Send Telegram Poll
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          TOPIC_ID: ${{ secrets.TOPIC_ID }}
         run: |
-          # Получаем дату для Москвы
+          # Дата для Москвы
           DATE=$(TZ=Europe/Moscow date +"%d.%m.%Y")
           
           # День недели по-русски
@@ -27,38 +26,29 @@ jobs:
             7) DAY="ВС";;
           esac
           
-          # Текст сообщения (URL кодирование для переносов строк)
-          TEXT="🎮 ИГРАЕМ СЕГОДНЯ?%0A%0A📅 $DATE ($DAY)%0A⏰ 11:00 МСК%0A%0AОтветьте кнопками ниже"
+          echo "🤖 Отправляю настоящий опрос..."
           
-          # Клавиатура с кнопками
-          KEYBOARD='{"inline_keyboard":[[{"text":"✅ ДА","callback_data":"yes"},{"text":"❌ НЕТ","callback_data":"no"}]]}'
+          # Текст опроса
+          QUESTION="🎮 ИГРАЕМ СЕГОДНЯ? ($DATE, $DAY, 11:00 МСК)"
           
-          echo "🤖 Отправляю опрос..."
-          
-          # Пробуем отправить С ТЕМОЙ
+          # Отправляем НАСТОЯЩИЙ опрос (poll) в Telegram
           RESPONSE=$(curl -s -X POST \
-            "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
-            -d "chat_id=$CHAT_ID" \
-            -d "message_thread_id=$TOPIC_ID" \
-            -d "text=$TEXT" \
-            -d "reply_markup=$KEYBOARD")
+            "https://api.telegram.org/bot$BOT_TOKEN/sendPoll" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"chat_id\": \"$CHAT_ID\",
+              \"question\": \"$QUESTION\",
+              \"options\": [\"✅ ДА\", \"❌ НЕТ\"],
+              \"is_anonymous\": false,
+              \"type\": \"regular\",
+              \"allows_multiple_answers\": false
+            }")
           
-          echo "📨 Ответ Telegram: $RESPONSE"
+          echo "📊 Ответ Telegram: $RESPONSE"
           
-          # Проверяем ответ
           if echo "$RESPONSE" | grep -q '"ok":true'; then
-            echo "✅ Успешно отправлено в тему $TOPIC_ID!"
+            echo "✅ НАСТОЯЩИЙ опрос успешно отправлен!"
           else
-            echo "⚠️ Проблема с темой, отправляю без темы..."
-            
-            # Отправляем БЕЗ ТЕМЫ
-            curl -s -X POST \
-              "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
-              -d "chat_id=$CHAT_ID" \
-              -d "text=$TEXT" \
-              -d "reply_markup=$KEYBOARD"
-            
-            echo "✅ Сообщение отправлено без темы!"
+            echo "❌ Ошибка при отправке опроса"
+            echo "Подробности: $RESPONSE"
           fi
-          
-          echo "🎉 Готово! Проверь Telegram."
